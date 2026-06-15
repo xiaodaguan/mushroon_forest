@@ -1,0 +1,14 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary test files
+test_*.svg
+test_*.png
+kenney_*.zip
+oga_*.zip
+assets_tmp/
