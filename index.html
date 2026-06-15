@@ -554,25 +554,95 @@ function placeMushrooms() {
 //  CHARACTER
 // ================================================================
 let charGroup = null;
+const player = { x:0, z:0, targetX:0, targetZ:0, moving:false, pendingCollect:null };
 function makeCharacter() {
   const g = new THREE.Group();
-  // Body
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.35, 0.7, 8),
-    new THREE.MeshStandardMaterial({ color:0x4a6a8a, roughness:0.6 }));
-  body.position.y = 0.35;
+  const skin = new THREE.MeshStandardMaterial({ color:0xffd5b8, roughness:0.4 });
+  const shirt = new THREE.MeshStandardMaterial({ color:0x4a9eff, roughness:0.6 });
+  const pants = new THREE.MeshStandardMaterial({ color:0x3d5a80, roughness:0.6 });
+  const shoes = new THREE.MeshStandardMaterial({ color:0x6B4F3A, roughness:0.8 });
+  const hatMat = new THREE.MeshStandardMaterial({ color:0xe67e22, roughness:0.5 });
+  const hatDot = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.3 });
+  const eyeW = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.1 });
+  const eyeP = new THREE.MeshStandardMaterial({ color:0x2d3436, roughness:0.1 });
+  const blush = new THREE.MeshStandardMaterial({ color:0xff9e9e, roughness:0.5, transparent:true, opacity:0.3 });
+
+  // --- Body (chubby toddler proportions) ---
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.5, 12), shirt);
+  body.position.y = 0.5;
   g.add(body);
-  // Head
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8),
-    new THREE.MeshStandardMaterial({ color:0xf5e6d3, roughness:0.5 }));
-  head.position.y = 0.85;
+
+  // --- Head (big, round) ---
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 12), skin);
+  head.position.y = 0.95;
   g.add(head);
-  // Hat (mushroom cap)
-  const hat = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8),
-    new THREE.MeshStandardMaterial({ color:0xe67e22, roughness:0.5 }));
-  hat.scale.set(1, 0.5, 1);
-  hat.position.y = 1.05;
+
+  // --- Hair / Mushroom Hat ---
+  // Cap
+  const hat = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 12), hatMat);
+  hat.scale.set(1, 0.45, 1);
+  hat.position.set(0, 1.15, 0);
   g.add(hat);
-  g.position.set(0, 0, 0);
+  // Hat rim
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.06, 8, 16), hatMat);
+  rim.position.set(0, 0.98, 0);
+  rim.rotation.x = Math.PI / 2;
+  g.add(rim);
+  // White dots on hat
+  for (const [dx,dz] of [[0.18,0.12],[-0.14,0.2],[0.08,-0.18],[-0.2,-0.08],[0.25,-0.06],[-0.08,0.06]]) {
+    const d = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), hatDot);
+    d.position.set(dx, 1.08, dz);
+    g.add(d);
+  }
+
+  // --- Eyes (big, cute) ---
+  const eyeSpacing = 0.13;
+  for (const side of [-1, 1]) {
+    const white = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeW);
+    white.position.set(side * eyeSpacing, 0.98, 0.28);
+    g.add(white);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), eyeP);
+    pupil.position.set(side * eyeSpacing + side*0.015, 0.975, 0.33);
+    g.add(pupil);
+    // Eye shine
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), new THREE.MeshBasicMaterial({ color:0xffffff }));
+    shine.position.set(side * eyeSpacing + side*0.03, 0.99, 0.34);
+    g.add(shine);
+  }
+
+  // --- Blush ---
+  for (const side of [-1, 1]) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), blush);
+    b.position.set(side * 0.2, 0.9, 0.25);
+    g.add(b);
+  }
+
+  // --- Mouth (smile) ---
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.015, 6, 10), new THREE.MeshBasicMaterial({ color:0xd46565 }));
+  mouth.position.set(0, 0.9, 0.3);
+  mouth.rotation.x = Math.PI * 0.15;
+  mouth.rotation.z = Math.PI;
+  g.add(mouth);
+
+  // --- Arms ---
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.35, 6), skin);
+    arm.position.set(side * 0.38, 0.55, 0);
+    arm.rotation.z = side * 0.3;
+    g.add(arm);
+  }
+
+  // --- Legs & Shoes ---
+  for (const side of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.3, 6), pants);
+    leg.position.set(side * 0.12, 0.18, 0);
+    g.add(leg);
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.2), shoes);
+    shoe.position.set(side * 0.12, 0.03, 0.03);
+    shoe.rotation.y = side < 0 ? 0.1 : -0.1;
+    g.add(shoe);
+  }
+
   return g;
 }
 
@@ -599,8 +669,11 @@ const game = {
     gameState = 'forest';
     placeMushrooms();
     if (!charGroup) { charGroup = makeCharacter(); scene.add(charGroup); }
+    player.x = 0; player.z = 0; player.targetX = 0; player.targetZ = 0; player.moving = false; player.pendingCollect = null;
     charGroup.position.set(0, 0, 0);
+    charGroup.rotation.y = 0;
     controls.target.set(0, 0, 0);
+    camera.position.set(3, 5, 7);
     controls.update();
     document.getElementById('menuUI').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
@@ -686,23 +759,15 @@ renderer.domElement.addEventListener('pointerup', e => {
   }
   const intersects = raycaster.intersectObjects(mushroomMeshes);
   if (intersects.length > 0) {
-    // Find which mushroom was clicked
+    // Walk to mushroom then collect
     for (const obj of worldObjects) {
       if (obj.type === 'mushroom' && !obj.collected) {
         for (const child of obj.mesh.children) {
           if (intersects[0].object === child) {
-            // Collected!
-            const isNew = Save.collect(obj.species.id);
-            obj.collected = true;
-            // Hide label
-            if (obj.label) obj.label.element.style.opacity = '0';
-            // Hide mesh
-            obj.mesh.visible = false;
-            Save.stars += 0; // trigger save
-            if (isNew) {
-              setTimeout(() => game.showPopup(obj.species), 300);
-            }
-            updateHUD();
+            player.targetX = obj.x + (obj.x > player.x ? -0.8 : 0.8);
+            player.targetZ = obj.z + (obj.z > player.z ? -0.8 : 0.8);
+            player.moving = true;
+            player.pendingCollect = obj;
             return;
           }
         }
@@ -714,8 +779,9 @@ renderer.domElement.addEventListener('pointerup', e => {
   const groundIntersect = raycaster.intersectObject(ground);
   if (groundIntersect && groundIntersect.length > 0 && charGroup) {
     const p = groundIntersect[0].point;
-    charGroup.position.x = p.x;
-    charGroup.position.z = p.z;
+    player.targetX = p.x;
+    player.targetZ = p.z;
+    player.moving = true;
   }
 });
 
@@ -741,6 +807,45 @@ function animate() {
     b.position.x += Math.sin(b.userData.phase * 0.5) * 0.002;
     b.position.z += Math.cos(b.userData.phase * 0.7) * 0.002;
     b.rotation.y = Math.sin(b.userData.phase * 0.3);
+  }
+  
+  // Smooth character movement
+  if (player.moving && charGroup) {
+    const dx = player.targetX - player.x;
+    const dz = player.targetZ - player.z;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+    if (dist > 0.05) {
+      const speed = Math.min(dist * 0.06 + 0.01, 0.1);
+      player.x += (dx/dist) * speed;
+      player.z += (dz/dist) * speed;
+      charGroup.position.x = player.x;
+      charGroup.position.z = player.z;
+      // Face movement direction
+      charGroup.rotation.y = Math.atan2(dx, dz);
+    } else {
+      player.x = player.targetX;
+      player.z = player.targetZ;
+      charGroup.position.x = player.x;
+      charGroup.position.z = player.z;
+      player.moving = false;
+      // Collect pending mushroom
+      if (player.pendingCollect) {
+        const obj = player.pendingCollect;
+        player.pendingCollect = null;
+        const isNew = Save.collect(obj.species.id);
+        obj.collected = true;
+        if (obj.label) obj.label.element.style.opacity = '0';
+        obj.mesh.visible = false;
+        if (isNew) setTimeout(() => game.showPopup(obj.species), 300);
+        updateHUD();
+      }
+    }
+  }
+  
+  // Camera follows character (smooth)
+  if (charGroup) {
+    controls.target.x += (player.x - controls.target.x) * 0.06;
+    controls.target.z += (player.z - controls.target.z) * 0.06;
   }
   
   controls.update();
